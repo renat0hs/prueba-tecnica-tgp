@@ -6,6 +6,9 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 # Letras, números y guiones, separados por al menos un punto. Ej: acme.cl, mi-empresa.com.ar
 DOMINIO_REGEX = re.compile(r"[a-z0-9-]+(\.[a-z0-9-]+)+")
 
+# Largo máximo aceptado para el cuerpo del correo que genera el LLM.
+MAX_PALABRAS_CUERPO = 120
+
 
 class LeadCreate(BaseModel):
     """Cuerpo del POST /leads."""
@@ -42,3 +45,21 @@ class LeadOut(BaseModel):
     correo_cuerpo: str | None
     error_motivo: str | None
     created_at: datetime
+
+
+class CorreoGenerado(BaseModel):
+    """Lo que el LLM debe devolver: {"asunto": "...", "cuerpo": "..."}."""
+
+    # extra="ignore": si el modelo agrega otra clave, se descarta; lo importante son estas dos.
+    model_config = ConfigDict(extra="ignore", str_strip_whitespace=True)
+
+    asunto: str = Field(min_length=1, max_length=150)
+    cuerpo: str = Field(min_length=1)
+
+    @field_validator("cuerpo")
+    @classmethod
+    def validar_largo_cuerpo(cls, valor: str) -> str:
+        palabras = len(valor.split())
+        if palabras > MAX_PALABRAS_CUERPO:
+            raise ValueError(f"el cuerpo tiene {palabras} palabras (máximo {MAX_PALABRAS_CUERPO})")
+        return valor
