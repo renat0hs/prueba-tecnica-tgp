@@ -1,0 +1,16 @@
+# Credenciales: nunca van a git
+.env
+
+# Notas personales (plan y bitácora)
+notas/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Editor y sistema operativo
+.vscode/
+.idea/
+.DS_Store
