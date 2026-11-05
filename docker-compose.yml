@@ -1,0 +1,24 @@
+services:
+  db:
+    image: postgres:16
+    env_file: .env            # POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB
+    volumes:
+      - pgdata:/var/lib/postgresql/data   # los datos sobreviven a "docker compose down"
+    healthcheck:
+      # $$ para que la variable la expanda el contenedor y no docker compose
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: .
+    env_file: .env            # DATABASE_URL, GROQ_API_KEY, etc.
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy   # espera a que Postgres acepte conexiones
+
+volumes:
+  pgdata:

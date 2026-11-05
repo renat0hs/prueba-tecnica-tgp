@@ -1,0 +1,9 @@
+# Nada de esto debe terminar dentro de la imagen.
+# El .env llega al contenedor en tiempo de ejecución (env_file), nunca al construirla.
+.env
+notas/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.git/
