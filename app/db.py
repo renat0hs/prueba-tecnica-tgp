@@ -12,3 +12,12 @@ SessionLocal = sessionmaker(bind=engine)
 
 class Base(DeclarativeBase):
     pass
+
+
+def get_db():
+    """Abre una sesión por request y la cierra siempre al terminar, aunque haya error."""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
