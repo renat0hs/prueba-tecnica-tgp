@@ -6,7 +6,7 @@ from datetime import timedelta
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
-from app.db import Base, SessionLocal, engine
+from app.db import SessionLocal, crear_tablas
 from app.llm import ClienteGroq, ErrorLLM
 from app.models import Lead
 
@@ -107,6 +107,6 @@ def ejecutar_worker(cliente_llm, segundos_sin_trabajo: float) -> None:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-    Base.metadata.create_all(engine)  # por si el worker arranca antes que la API
+    crear_tablas()  # con candado: no choca con la API si arrancan juntas
     segundos = float(os.environ.get("WORKER_POLL_SECONDS", "5"))
     ejecutar_worker(ClienteGroq(), segundos)

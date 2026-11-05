@@ -4,15 +4,15 @@ from fastapi import Depends, FastAPI
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.db import Base, engine, get_db
-from app.models import Lead  # importarlo también registra la tabla en Base.metadata
+from app.db import crear_tablas, get_db
+from app.models import Lead
 from app.schemas import LeadCreate, LeadOut
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Al arrancar: crea las tablas que no existan. No modifica tablas que ya existen.
-    Base.metadata.create_all(engine)
+    crear_tablas()
     yield
 
 
