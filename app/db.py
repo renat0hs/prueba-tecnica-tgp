@@ -10,7 +10,10 @@ DATABASE_URL = os.environ["DATABASE_URL"]
 # el mismo en la API y en el worker, y no usarse para otra cosa.
 LOCK_CREAR_TABLAS = 2024_0001
 
-engine = create_engine(DATABASE_URL)
+# pool_pre_ping: antes de entregar una conexión del pool, verifica que siga viva.
+# Si la base se reinició, descarta la conexión muerta y abre otra (sin esto, la primera
+# petición después del reinicio falla con 500).
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(bind=engine)
 
 
