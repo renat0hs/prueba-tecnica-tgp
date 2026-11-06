@@ -1,5 +1,6 @@
 import logging
 import os
+import threading
 import time
 from datetime import timedelta
 
@@ -105,8 +106,37 @@ def ejecutar_worker(cliente_llm, segundos_sin_trabajo: float) -> None:
             time.sleep(segundos_sin_trabajo)
 
 
-if __name__ == "__main__":
+def configurar_logs() -> None:
+    """Muestra los logs INFO del worker. Uvicorn solo configura sus propios loggers,
+    así que sin esto los logs del worker no aparecerían cuando corre dentro de la API."""
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+
+
+def leer_espera_sin_trabajo() -> float:
+    """Segundos que duerme el worker cuando no hay leads (WORKER_POLL_SECONDS)."""
+    return float(os.environ.get("WORKER_POLL_SECONDS", "5"))
+
+
+def iniciar_en_segundo_plano() -> threading.Thread:
+    """Corre el worker en un hilo dentro del proceso de la API.
+
+    Se usa en Render free, que no ofrece background workers. daemon=True: el hilo muere con
+    el proceso; si estaba a mitad de un lead, Postgres deshace la transacción y el lead
+    vuelve a 'pendiente'. Las tablas ya las creó la API antes de llamar a esta función.
+    """
+    configurar_logs()
+    cliente = ClienteGroq()  # sin GROQ_API_KEY lanza RuntimeError y la API no arranca
+    hilo = threading.Thread(
+        target=ejecutar_worker,
+        args=(cliente, leer_espera_sin_trabajo()),
+        name="worker",
+        daemon=True,
+    )
+    hilo.start()
+    return hilo
+
+
+if __name__ == "__main__":
+    configurar_logs()
     crear_tablas()  # con candado: no choca con la API si arrancan juntas
-    segundos = float(os.environ.get("WORKER_POLL_SECONDS", "5"))
-    ejecutar_worker(ClienteGroq(), segundos)
+    ejecutar_worker(ClienteGroq(), leer_espera_sin_trabajo())
