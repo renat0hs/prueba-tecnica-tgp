@@ -74,6 +74,45 @@ def test_get_lista_los_mas_nuevos_primero(cliente_api):
     }
 
 
+# --- Documentación y detalles de las respuestas ----------------------------------------
+
+
+def test_raiz_redirige_a_la_documentacion(cliente_api):
+    # follow_redirects=False: ver la redirección en vez de seguirla.
+    respuesta = cliente_api.get("/", follow_redirects=False)
+
+    assert respuesta.status_code == 307
+    assert respuesta.headers["location"] == "/docs"
+
+
+def test_el_ejemplo_de_swagger_es_un_lead_valido(cliente_api):
+    # Arma el lead con los ejemplos que muestra /docs y lo manda: si alguien cambia la
+    # validación y el ejemplo queda inválido, "Try it out" daría 422 y este test falla.
+    esquema = cliente_api.get("/openapi.json").json()
+    campos = esquema["components"]["schemas"]["LeadCreate"]["properties"]
+    ejemplo = {nombre: campo["examples"][0] for nombre, campo in campos.items()}
+
+    respuesta = cliente_api.post("/leads", json=ejemplo)
+
+    assert respuesta.status_code == 201
+
+
+@pytest.mark.parametrize(
+    "metodo, ruta, cuerpo, status",
+    [
+        pytest.param("post", "/leads", LEAD_VALIDO, 201, id="POST creado"),
+        pytest.param("get", "/leads", None, 200, id="GET lista"),
+        pytest.param("post", "/leads", {"dominio": "acme"}, 422, id="validación 422"),
+        pytest.param("get", "/no-existe", None, 404, id="ruta 404"),
+    ],
+)
+def test_respuestas_json_declaran_utf8(cliente_api, metodo, ruta, cuerpo, status):
+    respuesta = cliente_api.request(metodo, ruta, json=cuerpo)
+
+    assert respuesta.status_code == status
+    assert respuesta.headers["content-type"] == "application/json; charset=utf-8"
+
+
 # --- RUN_WORKER_IN_API: el worker dentro de la API (Render free) ----------------------
 
 
