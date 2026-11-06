@@ -1,5 +1,8 @@
 import pytest
+from fastapi.testclient import TestClient
 
+from app import worker
+from app.main import app
 from app.models import Lead
 
 LEAD_VALIDO = {
@@ -69,3 +72,42 @@ def test_get_lista_los_mas_nuevos_primero(cliente_api):
         "id", "nombre_empresa", "dominio", "cargo_contacto", "estado",
         "correo_asunto", "correo_cuerpo", "error_motivo", "created_at",
     }
+
+
+# --- RUN_WORKER_IN_API: el worker dentro de la API (Render free) ----------------------
+
+
+@pytest.fixture
+def llamadas_al_worker(monkeypatch):
+    """Reemplaza iniciar_en_segundo_plano por una función que solo anota que la llamaron,
+    para no levantar un hilo real que procese leads mientras corren los otros tests."""
+    llamadas = []
+    monkeypatch.setattr(worker, "iniciar_en_segundo_plano", lambda: llamadas.append("iniciado"))
+    return llamadas
+
+
+def test_api_no_arranca_el_worker_por_defecto(monkeypatch, llamadas_al_worker):
+    monkeypatch.delenv("RUN_WORKER_IN_API", raising=False)
+
+    with TestClient(app):
+        pass
+
+    assert llamadas_al_worker == []
+
+
+def test_api_arranca_el_worker_si_se_pide(monkeypatch, llamadas_al_worker):
+    monkeypatch.setenv("RUN_WORKER_IN_API", "true")
+
+    with TestClient(app):
+        pass
+
+    assert llamadas_al_worker == ["iniciado"]
+
+
+def test_api_no_arranca_si_el_worker_no_tiene_llave(monkeypatch):
+    # Función real: sin GROQ_API_KEY (la borra conftest), ClienteGroq falla antes de crear el hilo.
+    monkeypatch.setenv("RUN_WORKER_IN_API", "true")
+
+    with pytest.raises(RuntimeError, match="falta la variable de entorno GROQ_API_KEY"):
+        with TestClient(app):
+            pass

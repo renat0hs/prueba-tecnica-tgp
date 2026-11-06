@@ -1,9 +1,11 @@
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app import worker
 from app.db import crear_tablas, get_db
 from app.models import Lead
 from app.schemas import LeadCreate, LeadOut
@@ -13,6 +15,10 @@ from app.schemas import LeadCreate, LeadOut
 async def lifespan(app: FastAPI):
     # Al arrancar: crea las tablas que no existan. No modifica tablas que ya existen.
     crear_tablas()
+    # En Render free no hay background workers: el worker corre en un hilo de la API.
+    # En local va en false, porque el worker es un servicio aparte en docker compose.
+    if os.environ.get("RUN_WORKER_IN_API", "false").lower() == "true":
+        worker.iniciar_en_segundo_plano()
     yield
 
 
