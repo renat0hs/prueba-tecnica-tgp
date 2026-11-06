@@ -17,9 +17,10 @@ class LeadCreate(BaseModel):
     # str_strip_whitespace: quita espacios al inicio y al final de cada texto.
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
-    nombre_empresa: str = Field(min_length=1, max_length=200)
-    dominio: str = Field(min_length=1, max_length=200)
-    cargo_contacto: str = Field(min_length=1, max_length=200)
+    # examples: el valor que Swagger (/docs) deja escrito al apretar "Try it out".
+    nombre_empresa: str = Field(min_length=1, max_length=200, examples=["Compañía Acme SpA"])
+    dominio: str = Field(min_length=1, max_length=200, examples=["acme.cl"])
+    cargo_contacto: str = Field(min_length=1, max_length=200, examples=["Gerente de Operaciones"])
 
     @field_validator("dominio")
     @classmethod
@@ -40,10 +41,10 @@ class LeadOut(BaseModel):
     nombre_empresa: str
     dominio: str
     cargo_contacto: str
-    estado: str
+    estado: str = Field(description="pendiente, procesado o error")
     correo_asunto: str | None
     correo_cuerpo: str | None
-    error_motivo: str | None
+    error_motivo: str | None = Field(description="Por qué falló el último intento (si falló)")
     created_at: datetime
 
 

@@ -10,7 +10,7 @@ Microservicio para la prueba técnica de TGP: genera un primer correo de outreac
 
 ## Stack
 - Python 3.12, FastAPI, Pydantic, SQLAlchemy, PostgreSQL 16, pytest.
-- LLM: Groq (API compatible con OpenAI), modelo `llama-3.1-8b-instant`.
+- LLM: Groq (API compatible con OpenAI), modelo `openai/gpt-oss-20b` (`llama-3.1-8b-instant` ya no existe en Groq).
 - Docker compose para local (api + worker + db). Despliegue en Render.
 
 ## Reglas
