@@ -1,0 +1,32 @@
+# Blueprint de Render: la configuración del despliegue como código.
+# Se crea una vez desde el panel (New -> Blueprint) apuntando a la rama main.
+
+services:
+  - type: web
+    name: tgp-outreach
+    runtime: docker              # construye con el Dockerfile del repo
+    plan: free
+    region: virginia             # la misma región que la base
+    branch: main
+    autoDeployTrigger: checksPass  # despliega main solo si el CI quedó en verde
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:            # URL interna de la base (red privada de Render)
+          name: tgp-outreach-db
+          property: connectionString
+      - key: GROQ_API_KEY
+        sync: false              # secreto: Render lo pide en el panel, nunca va en el repo
+      - key: GROQ_MODEL
+        value: openai/gpt-oss-20b
+      - key: LLM_TIMEOUT_SECONDS
+        value: "20"
+      - key: WORKER_POLL_SECONDS
+        value: "5"
+      - key: RUN_WORKER_IN_API   # Render free no tiene background workers
+        value: "true"
+
+databases:
+  - name: tgp-outreach-db
+    plan: free                   # vence 30 días después de crearse
+    region: virginia
+    postgresMajorVersion: "16"   # la misma versión que en local y en CI
