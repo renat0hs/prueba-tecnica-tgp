@@ -1,10 +1,24 @@
 import os
 
 from sqlalchemy import create_engine, text
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
+
+def normalizar_url(url: str) -> str:
+    """Asegura que SQLAlchemy use psycopg 3, el driver que tenemos instalado.
+
+    Render (y Neon) entregan la URL como 'postgresql://...'. Con ese formato SQLAlchemy
+    usaría psycopg2, que no está instalado. Si la URL ya trae el driver, se deja igual.
+    """
+    url_parseada = make_url(url)
+    if url_parseada.drivername in ("postgres", "postgresql"):
+        url_parseada = url_parseada.set(drivername="postgresql+psycopg")
+    return url_parseada.render_as_string(hide_password=False)
+
+
 # Si falta la variable, la app no arranca (KeyError) en vez de conectarse a algo por defecto.
-DATABASE_URL = os.environ["DATABASE_URL"]
+DATABASE_URL = normalizar_url(os.environ["DATABASE_URL"])
 
 # Número cualquiera que identifica el candado de "crear tablas". Solo tiene que ser
 # el mismo en la API y en el worker, y no usarse para otra cosa.
