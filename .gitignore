@@ -4,6 +4,9 @@
 # Notas personales (plan y bitácora)
 notas/
 
+# Configuración local de Claude Code
+.claude/
+
 # Python
 .venv/
 __pycache__/

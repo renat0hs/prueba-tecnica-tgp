@@ -20,5 +20,15 @@ services:
       db:
         condition: service_healthy   # espera a que Postgres acepte conexiones
 
+  worker:
+    build: .                  # misma imagen que la API...
+    command: python -m app.worker   # ...con otro comando
+    env_file: .env
+    init: true                # reenvía SIGTERM: "docker compose stop" lo detiene al tiro, no a los 10 s
+    restart: unless-stopped   # si se cae, Docker lo vuelve a levantar
+    depends_on:
+      db:
+        condition: service_healthy   # no depende de la API: crear_tablas() tiene candado
+
 volumes:
   pgdata:

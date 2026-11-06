@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  pull_request:            # cada PR (y cada push a la rama mientras el PR está abierto)
+  push:
+    branches: [main]       # confirma que main sigue en verde después del merge
+
+permissions:
+  contents: read           # el workflow solo puede leer el repo
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10    # si un test se queda pegado, se corta aquí y no a las 6 horas
+
+    services:
+      # Postgres desechable: vive solo durante el job, sin datos ni acceso desde internet.
+      # Por eso usuario y contraseña pueden ir escritos aquí; no son credenciales reales.
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: leads_test      # conftest.py deja tal cual los nombres que terminan en _test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"       # la misma del Dockerfile
+          cache: pip
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      # Sin GROQ_API_KEY a propósito: los tests usan un LLM falso y nunca llaman al real.
+      - name: Correr tests
+        env:
+          DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/leads_test
+        run: python -m pytest -v
+
+  docker:
+    # Render construye con este Dockerfile: si se rompe, mejor saberlo aquí que en el deploy.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Construir la imagen
+        run: docker build -t tgp-outreach:ci .
